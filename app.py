@@ -30,6 +30,8 @@ import statsmodels.api as sm
 from statsmodels.tsa.stattools import coint
 from statsmodels.tsa.arima.model import ARIMA#
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+import streamlit as st
+st.set_page_config(page_title="Leitura Integrada (IBOV)", layout="wide")  # deve ser a 1ª chamada do Streamlit
 
 try:
     from arch import arch_model
@@ -43,8 +45,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.metrics import roc_auc_score
-import streamlit as st
-st.set_page_config(page_title="Leitura Integrada (IBOV)", layout="wide")
 
 
 from math import erf, sqrt, log, exp
@@ -2144,8 +2144,7 @@ def _mtime_key(path: str) -> float:
     except Exception: return time.time()
 
 def run_streamlit_multi(data_dir="data", weights_csv=None, use_embedded_weights=True):
-    import streamlit as st
-    st.set_page_config(page_title="Leitura Integrada (IBOV)", layout="wide")
+    # 'set_page_config' já foi chamado no topo. Não chame novamente aqui.
     st.title("Leitura Integrada — Wyckoff + GEX + AR/GARCH + Analógicos + ML")
 
     st.sidebar.header("Entrada")
