@@ -14,9 +14,7 @@ venv/
 Thumbs.db
 .vscode/
 
-# Local data/outputs (mantém fora do Git)
-data/
-out/
+
 
 # Streamlit
 .streamlit/
