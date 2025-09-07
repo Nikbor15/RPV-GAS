@@ -1,5 +1,7 @@
 # app.py
 # -*- coding: utf-8 -*-
+import streamlit as st
+st.set_page_config(page_title="Leitura Integrada (IBOV)", layout="wide")  # deve ser a 1ª chamada do Streamlit
 from __future__ import annotations
 
 """
@@ -30,8 +32,7 @@ import statsmodels.api as sm
 from statsmodels.tsa.stattools import coint
 from statsmodels.tsa.arima.model import ARIMA#
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-import streamlit as st
-st.set_page_config(page_title="Leitura Integrada (IBOV)", layout="wide")  # deve ser a 1ª chamada do Streamlit
+
 
 try:
     from arch import arch_model
