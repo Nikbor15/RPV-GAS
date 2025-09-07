@@ -1,7 +1,6 @@
 # app.py
 # -*- coding: utf-8 -*-
-import streamlit as st
-from __future__ import annotations
+
 
 """
 Leitura Integrada IBOV — enxuta e integrada (ATUALIZADA)
@@ -13,6 +12,8 @@ Leitura Integrada IBOV — enxuta e integrada (ATUALIZADA)
 • Amostragem: tick de strike inferido automaticamente.
 • Streamlit: UI multi-ativos (Súmula, Painéis, GEX, Tabelas, ML).
 """
+from __future__ import annotations
+import streamlit as st
 
 # ==========================
 # Dependências
@@ -2161,8 +2162,8 @@ def run_streamlit_multi(data_dir="data", weights_csv=None, use_embedded_weights=
     st.sidebar.write(f"Arquivos encontrados: {len(paths)}")
 
     @st.cache_data(show_spinner=False)
-     def _cached_analyze(path, mtime): 
-         return analyze_asset_file(path)
+    def _cached_analyze(path, mtime):
+        return analyze_asset_file(path)
 
     with st.spinner("Processando ativos…"):
         args=[(p,_mtime_key(p)) for p in paths]
@@ -2219,15 +2220,26 @@ def run_streamlit_multi(data_dir="data", weights_csv=None, use_embedded_weights=
                                  f"{tkr} — Preço, Projeção e Banda 1σ (AR/GARCH)")
             st.plotly_chart(fig, use_container_width=True)
         with colB:
-            st.markdown(f"**Resumo executivo**")
+            st.markdown("**Resumo executivo**")
             parts = rs["joint"]["parts"]
             st.write(f"- **Ensemble:** {rs['joint']['signal']} (score {rs['joint']['score']:+.3f}, conf. {rs['joint']['confidence']}%)")
-            st.write(f"- **Dealer:** {parts.get('dealer_regime','n/d')} • **Flip:** {_num(parts.get('flip',np.nan))}")
+            st.write(f"- **Dealer:** {parts.get('dealer_regime','n/d')} • **Flip:** {_num(parts.get('flip', np.nan))}")
+        
             em_abs, em_pct = expected_move_days(rs["ga"], float(rs["spot"]), days=10)
             st.write(f"- **EM 10d (GARCH):** ±{_num(em_pct,'n/d','{:.2f}')}% (≈ ±{_num(em_abs,'n/d','{:.2f}')} pts)")
-            st.write(f"- **ML (logística):** prob. alta {rs.get('ml',{}).get('prob_up_ml', float('nan')):.2%}")
-            st.write(f"- **Deep LSTM:** prob. alta {rs.get('dl',{}).get('prob_up_dl', float('nan')):.2%}")
-            st.write(f"- Contribuições → Wy: {parts['wyckoff_dir']:+.2f} | GEX: {parts['gex_dir']:+.2f} | Ana: {parts['analog_dir']:+.2f} | ML: {parts['ml_dir']:+.2f}")
+        
+            p_ml  = rs.get('ml', {}).get('prob_up_ml', np.nan)
+            auc   = rs.get('ml', {}).get('auc_cv', np.nan)
+            p_ana = rs.get('analog', {}).get('prob_up', np.nan)
+            em_ana = rs.get('analog', {}).get('em_pct_ana', np.nan)
+            ivrv = rs.get('ga', {}).get('IVRV', np.nan)
+            ivf  = rs.get('ga', {}).get('IV_front', np.nan)
+        
+            st.write(f"- **ML (logística):** prob. alta {_num(100*p_ml,'n/d','{:.0f}')}% • AUC {_num(auc,'n/d','{:.2f}')}")
+            st.write(f"- **Analógicos (k=60):** prob. alta {_num(100*p_ana,'n/d','{:.0f}')}% • EM ±{_num(em_ana,'n/d','{:.2f}')}%")
+            st.write(f"- **IV/RV:** {_num(ivrv,'n/d','{:.2f}')} • IV(front) {_num(100*ivf,'n/d','{:.0f}')}%")
+            st.write(f"- **Wyckoff:** {rs['wy_last'].get('regime','n/d')} • fase {rs['wy_last'].get('fase_pt','n/d')}")
+        
 
     with tab_gex:
         tkr = st.selectbox("Ativo", options=[r["ticker"] for r in ok], key="gex_tkr")
