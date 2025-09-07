@@ -2144,7 +2144,8 @@ def _mtime_key(path: str) -> float:
     except Exception: return time.time()
 
 def run_streamlit_multi(data_dir="data", weights_csv=None, use_embedded_weights=True):
-    # 'set_page_config' já foi chamado no topo. Não chame novamente aqui.
+    # PRIMEIRO comando do Streamlit no ciclo de execução:
+    st.set_page_config(page_title="Leitura Integrada (IBOV)", layout="wide")
     st.title("Leitura Integrada — Wyckoff + GEX + AR/GARCH + Analógicos + ML")
 
     st.sidebar.header("Entrada")
@@ -2160,7 +2161,8 @@ def run_streamlit_multi(data_dir="data", weights_csv=None, use_embedded_weights=
     st.sidebar.write(f"Arquivos encontrados: {len(paths)}")
 
     @st.cache_data(show_spinner=False)
-    def _cached_analyze(path, mtime): return analyze_asset_file(path)
+     def _cached_analyze(path, mtime): 
+         return analyze_asset_file(path)
 
     with st.spinner("Processando ativos…"):
         args=[(p,_mtime_key(p)) for p in paths]
