@@ -1451,38 +1451,67 @@ def find_analogs(S: pd.DataFrame, close: pd.Series, horizon: int = 10, k: int = 
             "em_pct_ana":em_pct_ana,"analog_dir":analog_dir,"matches":matches}
 
 def ml_directional_prob(S: pd.DataFrame, close: pd.Series, horizon: int = 10, min_train: int = 250):
-    y=(np.log(close.shift(-horizon)/close)>0).astype(int).rename("y")
+    # alvo binário: 1 se retorno acumulado (t→t+h) > 0
+    y = (np.log(close.shift(-horizon) / close) > 0).astype(int).rename("y")
+
+    # features numéricas, limpando inf/nan sem usar .replace (evita FutureWarning)
     X0 = (
-    S.copy()
-     .replace([np.inf, -np.inf], np.nan)
-     .apply(pd.to_numeric, errors="coerce")   # força numérico
-     .ffill(limit=10).bfill(limit=10)
-     .fillna(0.0)
-     .astype("float64")                       # evita downcast implícito
+        S.copy()
+         .apply(pd.to_numeric, errors="coerce")
+         .where(np.isfinite, np.nan)
+         .ffill(limit=10).bfill(limit=10)
+         .fillna(0.0)
+         .astype("float64")
     )
 
-    if len(df)<120: return {"prob_up_ml":np.nan,"auc_cv":np.nan,"coef":{}}
-    dyn_min=min(250,max(60,int(0.30*len(df)))); min_train=dyn_min
-    X,yv=df.drop(columns=["y"]),df["y"]; tscv=TimeSeriesSplit(n_splits=5); oof=np.full(len(yv),np.nan)
-    for tr,te in tscv.split(X):
-        if len(tr)<min_train: continue
-        pipe=Pipeline([("sc",StandardScaler(with_mean=False)),("lr",LogisticRegression(max_iter=400,class_weight="balanced",solver="lbfgs"))])
-        pipe.fit(X.iloc[tr].values, yv.iloc[tr].values); oof[te]=pipe.predict_proba(X.iloc[te].values)[:,1]
+    # >>> faltava isto:
+    df = pd.concat([X0, y], axis=1).dropna()
+
+    # dados insuficientes → retorna NaN
+    if len(df) < 120:
+        return {"prob_up_ml": np.nan, "auc_cv": np.nan, "coef": {}}
+
+    # tamanho mínimo de treino dinâmico (cap 250, floor 60, ~30% da amostra)
+    dyn_min = min(250, max(60, int(0.30 * len(df))))
+    X, yv = df.drop(columns=["y"]), df["y"]
+
+    # validação temporal com OOF
+    tscv = TimeSeriesSplit(n_splits=5)
+    oof = np.full(len(yv), np.nan)
+    for tr, te in tscv.split(X):
+        if len(tr) < max(min_train, dyn_min):
+            continue
+        pipe = Pipeline([
+            ("sc", StandardScaler(with_mean=False)),
+            ("lr", LogisticRegression(max_iter=400, class_weight="balanced", solver="lbfgs")),
+        ])
+        pipe.fit(X.iloc[tr].values, yv.iloc[tr].values)
+        oof[te] = pipe.predict_proba(X.iloc[te].values)[:, 1]
+
+    # AUC (se houver pelo menos uma dobra válida)
     auc = np.nan
     mask = ~np.isnan(oof)
     if mask.any():
         y_true = yv[mask].values
         p_hat  = oof[mask]
-        try:
-            if np.unique(y_true).size >= 2:
+        if np.unique(y_true).size >= 2:
+            try:
                 auc = float(roc_auc_score(y_true, p_hat))
-        except Exception:
-            auc = np.nan
-    cutoff=-horizon if horizon>0 else len(X)
-    pipe=Pipeline([("sc",StandardScaler(with_mean=False)),("lr",LogisticRegression(max_iter=400,class_weight="balanced",solver="lbfgs"))])
+            except Exception:
+                auc = np.nan
+
+    # treino final sem vazamento: exclui os últimos 'horizon' pontos (alvo indefinido)
+    cutoff = len(X) - max(horizon, 1)
+    cutoff = max(cutoff, max(min_train, dyn_min))
+    pipe = Pipeline([
+        ("sc", StandardScaler(with_mean=False)),
+        ("lr", LogisticRegression(max_iter=400, class_weight="balanced", solver="lbfgs")),
+    ])
     pipe.fit(X.iloc[:cutoff].values, yv.iloc[:cutoff].values)
-    prob=float(pipe.predict_proba(X.iloc[[-1]].values)[:,1][0]); coef=dict(zip(X.columns, pipe.named_steps["lr"].coef_.ravel()))
-    return {"prob_up_ml":prob,"auc_cv":auc,"coef":coef}
+
+    prob = float(pipe.predict_proba(X.iloc[[-1]].values)[:, 1][0])
+    coef = dict(zip(X.columns, pipe.named_steps["lr"].coef_.ravel()))
+    return {"prob_up_ml": prob, "auc_cv": auc, "coef": coef}
 
 def drift_family(close: pd.Series, horizon: int = 1, seasonal_m: int = 21):
     ret=pd.Series(np.log(close).diff(),dtype="float64").dropna().reset_index(drop=True)
