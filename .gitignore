@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.log
+
+# Virtual envs
+.venv/
+env/
+venv/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Local data/outputs (mantém fora do Git)
+data/
+out/
+
+# Streamlit
+.streamlit/
+
+# Jupyter (se aparecer)
+.ipynb_checkpoints/
