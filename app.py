@@ -43,6 +43,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.metrics import roc_auc_score
+import streamlit as st
+st.set_page_config(page_title="Leitura Integrada (IBOV)", layout="wide")
+
 
 from math import erf, sqrt, log, exp
 
