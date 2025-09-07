@@ -1,7 +1,6 @@
 # app.py
 # -*- coding: utf-8 -*-
 import streamlit as st
-st.set_page_config(page_title="Leitura Integrada (IBOV)", layout="wide")  # deve ser a 1ª chamada do Streamlit
 from __future__ import annotations
 
 """
