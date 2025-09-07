@@ -79,6 +79,11 @@ os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 warnings.filterwarnings("ignore", category=SMValueWarning)
 warnings.filterwarnings("ignore", category=FutureWarning, module="statsmodels")
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice*")
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", category=ConvergenceWarning)
+    arma = ARIMA(r_scaled, order=(1,0,0)).fit()
+
+
 
 # ==========================
 # Config / Estilo
@@ -1434,8 +1439,15 @@ def find_analogs(S: pd.DataFrame, close: pd.Series, horizon: int = 10, k: int = 
 
 def ml_directional_prob(S: pd.DataFrame, close: pd.Series, horizon: int = 10, min_train: int = 250):
     y=(np.log(close.shift(-horizon)/close)>0).astype(int).rename("y")
-    X0=S.copy().replace([np.inf,-np.inf],np.nan).ffill(limit=10).bfill(limit=10).fillna(0.0)
-    df=pd.concat([X0,y],axis=1).dropna()
+    X0 = (
+    S.copy()
+     .replace([np.inf, -np.inf], np.nan)
+     .apply(pd.to_numeric, errors="coerce")   # força numérico
+     .ffill(limit=10).bfill(limit=10)
+     .fillna(0.0)
+     .astype("float64")                       # evita downcast implícito
+    )
+
     if len(df)<120: return {"prob_up_ml":np.nan,"auc_cv":np.nan,"coef":{}}
     dyn_min=min(250,max(60,int(0.30*len(df)))); min_train=dyn_min
     X,yv=df.drop(columns=["y"]),df["y"]; tscv=TimeSeriesSplit(n_splits=5); oof=np.full(len(yv),np.nan)
