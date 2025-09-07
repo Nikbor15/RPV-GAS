@@ -12,7 +12,7 @@ Leitura Integrada IBOV — enxuta e integrada (ATUALIZADA)
 • Amostragem: tick de strike inferido automaticamente.
 • Streamlit: UI multi-ativos (Súmula, Painéis, GEX, Tabelas, ML).
 """
-from __future__ import annotations
+
 import streamlit as st
 
 # ==========================
@@ -79,9 +79,22 @@ os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 warnings.filterwarnings("ignore", category=SMValueWarning)
 warnings.filterwarnings("ignore", category=FutureWarning, module="statsmodels")
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice*")
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore", category=ConvergenceWarning)
-    arma = ARIMA(r_scaled, order=(1,0,0)).fit()
+import warnings
+
+
+
+try:
+    # Import oficial do statsmodels
+    from statsmodels.tools.sm_exceptions import ConvergenceWarning
+except Exception:
+    # Fallback seguro para o caso raríssimo de não existir
+    class ConvergenceWarning(Warning):
+        pass
+
+# filtros de warnings (aqui pode usar a classe com segurança)
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
+warnings.filterwarnings("ignore", category=FutureWarning, module="statsmodels")
+warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice*")
 
 
 
